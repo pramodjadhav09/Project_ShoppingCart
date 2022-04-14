@@ -2,8 +2,8 @@
 //VALODATIONFUNCTIONs-
 
 //FUNCTION1-
-const isValidRequestBody = function (requestbody){
-    return Object.keys(requestbody).length>0
+const isValidRequestBody = function (requestbody) {
+    return Object.keys(requestbody).length > 0
 }
 
 
@@ -27,6 +27,12 @@ const isValidfiles = function (files) {
         return true
 }
 
+//FUNCTION5-
+let isValidObjectId = function (objectId) {
+    return mongoose.Types.ObjectId.isValid(objectId)
+}
+
+
 
 
 
@@ -34,3 +40,4 @@ module.exports.isValid = isValid;
 module.exports.isValidRequestBody = isValidRequestBody;
 module.exports.isValidPassword = isValidPassword;
 module.exports.isValidfiles = isValidfiles;
+module.exports.isValidObjectId = isValidObjectId
