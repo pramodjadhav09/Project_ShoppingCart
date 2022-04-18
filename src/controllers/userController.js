@@ -168,7 +168,7 @@ const UserLogin = async function (req, res) {
             }
 
             const decryptPassword = await bcrypt.compare(data.password, emailMatch.password)
-            console.log(decryptPassword)
+            //console.log(decryptPassword)
 
             if (!decryptPassword) {
                 return res.status(400).send({ status: false, msg: "Incorrect password" })

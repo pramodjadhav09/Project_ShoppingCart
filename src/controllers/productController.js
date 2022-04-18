@@ -6,13 +6,9 @@ const awsS3 = require('../controllers/awsS3')
 
 
 
+
+
 //CreateProduct----------------------------
-
-
-const isavailableSizesValid = function (availableSizes) {
-    return ["S", "XS", "M", "X", "L", "XXL", "XL"].indexOf(availableSizes) !== -1
-}
-
 
 
 const CreateProduct = async function (req, res) {
@@ -25,12 +21,14 @@ const CreateProduct = async function (req, res) {
             return res.status(400).send({ status: false, msg: "No input provided" })
         }
 
-        let { title, description, price, currencyId, currencyFormat, availableSizes, installments } = requestBody
+        let { title, description, price, currencyId, currencyFormat, availableSizes } = requestBody
+
         if (!validator.isValid(title)) {
             return res.status(400).send({ status: false, msg: "title is required" })
         }
 
         const istitleUsed = await productModel.findOne({ title: title })
+
         if (istitleUsed) {
             return res.status(400).send({ status: false, msg: "title should be unique" })
 
@@ -60,24 +58,50 @@ const CreateProduct = async function (req, res) {
             return res.status(400).send({ status: false, Message: "currency format should be ₹ " })
         }
 
-        if (!validator.isValid(installments)) {
-            return res.status(400).send({ status: false, msg: "installments should be in Number only" })
+        // if (typeof(installments)!=Number) {
+        //     return res.status(400).send({ status: false, msg: "installments should be in Number only" })
+        // }
+
+
+
+        if (availableSizes) {
+
+            if (availableSizes.length === 0) {
+                return res.status(400).send({ status: false, msg: "Input product size" })
+            }
+
+            let array = []
+
+            //converting string into array-
+            let SavailableSizes = availableSizes.split(",")
+
+            for (let i = 0; i < availableSizes.split(",").length; i++) {
+
+                array.push(SavailableSizes[i].toUpperCase())
+
+                if (!(["S", "XS", "M", "X", "L", "XXL", "XL"].includes(array[i]))) {
+
+                    return res.status(400).send({ status: false, message: "Provide a valid size" })
+                }
+
+            }
+
+            requestBody.availableSizes = array
         }
 
-
+        //uploading product image-
         requestBody.productImage = await awsS3.uploadFile(files[0])
 
-        if (!isavailableSizesValid(availableSizes)) {
-            return res.status(400).send({ status: false, msg: "availableSizes should be S, XS,M,X, L,XXL, XL" })
-        }
-
+        //creating product-
         let Product = await productModel.create(requestBody)
         return res.status(201).send({ status: true, message: 'Product created successfully', data: Product })
 
-    }catch (error) {
+    }
+    catch (error) {
         return res.status(500).send({ status: false, msg: error.message })
     }
 }
+
 
 
 
@@ -151,8 +175,8 @@ const getProducts = async function (req, res) {
                 priceSort = -1;
             }
         }
-        console.log(obj);
-        let filterProduct = await ProductModel.find(obj).sort({ price: priceSort })
+        //console.log(obj);
+        let filterProduct = await productModel.find(obj).sort({ price: priceSort })
 
         if (filterProduct.length == 0) {
             return res.status(400).send({ status: true, message: "No product Found" });
@@ -179,6 +203,7 @@ const getProductById = async function (req, res) {
         if (!getProduct) {
             return res.status(400).send({ status: false, msg: "product does not exist" })
         }
+
         res.status(200).send({ status: true, msg: 'sucess', data: getProduct })
     }
     catch (error) {
@@ -205,6 +230,7 @@ const updateProductById = async function (req, res) {
         if (!checkProductId) {
             return res.status(404).send({ status: false, msg: "Invalid product id" })
         }
+
         const { title, description, price, currencyId, currencyFormat, isFreeShipping, style, availableSizes, installments } = data;
 
         const updateProductInfo = {}
@@ -252,17 +278,16 @@ const updateProductById = async function (req, res) {
             if (availableSizes.length === 0) {
                 return res.status(400).send({ status: false, msg: "Input product size" })
             }
-            console.log(typeof (availableSizes.split(" ")));
 
             let array = []
-            //let newsize = availableSizes.split(" ").length
 
             //converting string into array-
             let SavailableSizes = availableSizes.split(" ")
-            //console.log(newsize)
+
             for (let i = 0; i < availableSizes.split(" ").length; i++) {
-                // console.log(availableSizes[i])
+
                 array.push(SavailableSizes[i].toUpperCase())
+
                 if (!(["S", "XS", "M", "X", "L", "XXL", "XL"].includes(array[i]))) {
 
                     return res.status(400).send({ status: false, message: "Provide a valid size" })
@@ -302,20 +327,20 @@ const deleteProduct = async function (req, res) {
     try {
         let productId = req.params.productId
 
-        // if (!isValidObjectId(productId)) {
-        //     return res.status(400).send({ status: false, message: "Product Id is not correct" })
-        // }
+        if (!validator.isValidObjectId(productId)) {
+            return res.status(400).send({ status: false, message: "Product Id is not correct" })
+        }
 
         let isProductIdDeleted = await productModel.findOne({ _id: productId, isDeleted: true });
 
         if (isProductIdDeleted) {
-            return res.status(400).send({ status: false, msg: "Product Id is already deleted" })
+            return res.status(400).send({ status: false, msg: "Product is already deleted" })
         }
 
         let isProductIdPresent = await productModel.findOne({ _id: productId, isDeleted: false });
 
         if (!isProductIdPresent) {
-            return res.status(400).send({ status: false, msg: "Product Id is not present" })
+            return res.status(400).send({ status: false, msg: "No product exist with this product Id" })
         }
 
 
@@ -331,8 +356,10 @@ const deleteProduct = async function (req, res) {
 
 
 
-module.exports.CreateProduct = CreateProduct
-module.exports.getProducts = getProducts
-module.exports.getProductById = getProductById
-module.exports.updateProductById = updateProductById
-module.exports.deleteProduct = deleteProduct
+module.exports = {
+    CreateProduct,
+    getProducts,
+    getProductById,
+    updateProductById,
+    deleteProduct
+}

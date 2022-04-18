@@ -8,113 +8,65 @@ const validator = require('../validator/validator')
 
 //CreateCart--------------------
 
+
 const createCart = async function (req, res) {
+    let userId = req.params.userId;
+    let productId = req.body.items[0].productId;
+    let quantity = req.body.items[0].quantity;
+
     try {
-        const userIdFromParams = req.params.userId;
 
-        if (!validator.isValid(userIdFromParams)) {
-            return res
-                .status(400)
-                .send({ status: false, msg: "enter the userId" });
-        }
-        if (!validator.isValidObjectId(userIdFromParams)) {
-            return res
-                .status(400)
-                .send({ status: false, msg: "enter a valid userId" });
+        let UserCart = await cartModel.findOne({ userId: userId });
+
+        let productIdPresent = await productModel.findOne({ _id: productId })
+
+        if (!productIdPresent) {
+            return res.status(400).send({ status: false, message: "false", data: "product is not present" })
         }
 
-        const user = await userModel.findOne({ _id: userIdFromParams });
+        let price = productIdPresent.price;
 
-        if (!user) {
-            return res.status(404).send({ status: false, msg: "user not found" });
+        if (UserCart) {
+
+            let itemsIndex = UserCart.items.findIndex((item) => (item.productId == productId))
+
+            if (itemsIndex > -1) {
+
+                let product = UserCart.items[itemsIndex];
+                product.quantity = product.quantity + quantity;
+
+                UserCart.items[itemsIndex] = product;
+                UserCart.totalPrice = UserCart.totalPrice + price * quantity;
+                UserCart.totalItems = UserCart.totalItems + quantity
+                await UserCart.save();
+                return res.status(200).send(UserCart);
+
+            } else {
+
+                UserCart.items.push({ productId, quantity });
+                UserCart.totalPrice = UserCart.totalPrice + price * quantity;
+                UserCart.totalItems = UserCart.totalItems + quantity
+                await UserCart.save();
+                return res.status(200).send(UserCart)
+            }
+
+
+            //no cart exists, create one
+
+        } else {
+            const newUserCart = await cartModel.create({
+                userId: userId,
+                items: [{ productId, quantity }],
+                totalPrice: quantity * price,
+                totalItems: quantity
+            })
+
+            return res.status(201).send(newUserCart)
         }
 
-        const cartAlreadyPresent = await cartModel.findOne({userId: userIdFromParams});
-
-        const requestBody = req.body;
-
-        if (!validator.isValidRequestBody(requestBody)) {
-            return res.status(400).send({ status: false, msg: "enter a body" });
-        }
-
-        const { userId, items } = requestBody;
-
-        if (!validator.isValid(userId)) {
-            return res
-                .status(400)
-                .send({ status: false, msg: "enter the userId" });
-        }
-
-        if (!validator.isValidObjectId(userId)) {
-            return res
-                .status(400)
-                .send({ status: false, msg: "enter a valid userId" });
-        }
-
-        if (userIdFromParams !== userId) {
-            return res.status(400).send({
-                status: false, msg: "user in params doesn't match with user in body"
-            });
-        }
-
-        if (!validator.isValid(items.productId)) {
-            return res
-                .status(400)
-                .send({ status: false, msg: "enter the productId" });
-        }
-
-        if (!validator.isValidObjectId(items.productId)) {
-            return res
-                .status(400)
-                .send({ status: false, msg: "enter a valid productId" });
-        }
-
-        if (!validator.isValid(items.quantity) && items.quantity < 1) {
-            return res
-                .status(400)
-                .send({ status: false, msg: "enter a quantity more than 1 " });
-        }
-
-        const product = await productModel.findOne({ _id: items.productId });
-
-        if (!product) {
-            return res.status(404).send({ status: false, msg: "product not found" });
-        }
-
-        let totalItems = items.length;
-        let totalPrice = product.price * totalItems;
-
-        if (cartAlreadyPresent) {
-            const cartItems = cartAlreadyPresent.items;
-            cartItems.forEach((item) => (totalItems += item.quantity));
-            totalItems += 1;
-            totalPrice += cartAlreadyPresent.totalPrice;
-
-            // if product is already added then only quantity will increase
-            const cart = await cartModel.findOneAndUpdate(
-                { userId: userIdFromParams },
-                {
-                    $push: { items: items },
-                    $set: { totalPrice: totalPrice, totalItems: totalItems },
-                },
-                { new: true }
-            );
-            return res.status(201).send({ status: true, data: cart });
-        }
-
-        newCart = {
-            userId,
-            items,
-            totalPrice,
-            totalItems,
-        };
-
-        createCart = await cartModel.create(newCart);
-
-        res.status(201).send({ status: true, data: createCart });
 
     } catch (error) {
-        res.status(500).send({ status: false, msg: error.message });
+        return res.status(500).send({ msg: error.message });
     }
 }
 
@@ -123,7 +75,9 @@ const createCart = async function (req, res) {
 
 
 
-//GetCart-----------------------
+
+
+//GetCart----------------------------------
 
 const getCart = async function (req, res) {
 
@@ -151,6 +105,90 @@ const getCart = async function (req, res) {
 
 }
 
+
+
+
+
+//UpdateCart---------------------------------
+
+
+
+const updateCart = async function (req, res) {
+
+    let cartId = req.body.cartId;
+    let productId = req.body.productId;
+    let removeProduct = req.body.removeProduct;    // 0 to remove all and 1 to decrement quantity by 1
+
+
+    //validations-
+
+    if (!validator.isValidRequestBody(requestBody)) {
+        return res.status(400).send({ status: false, msg: "enter a body" });
+    }
+
+    if (!validator.isValid(userIdFromParams)) {
+        return res.status(400).send({ status: false, msg: "enter the productId" });
+    }
+    if (!validator.isValidObjectId(userIdFromParams)) {
+        return res.status(400).send({ status: false, msg: "enter a valid productId" });
+    }
+
+
+
+    let isCartIdPresent = await cartModel.findOne({ _id: cartId });
+    //  console.log(isCartIdPresent);
+    if (!isCartIdPresent) {
+        return res.status(400).send({ status: false, msg: "false", data: "Cart Id is not present" })
+    }
+
+    let isProductIdPresent = await ProductModel.findOne({ _id: productId });
+    //   console.log(isProductIdPresent);
+    if (!isProductIdPresent) {
+        return res.status(400).send({ status: false, msg: "false", data: "Cart Id is not present" })
+    }
+
+    let price = isProductIdPresent.price;
+
+    if (isCartIdPresent) {
+        if (removeProduct == 1) {
+            let findIndex = isCartIdPresent.items.findIndex((item) => (item.productId == productId))
+
+            if (findIndex > -1) {
+                let item = isCartIdPresent.items[findIndex];
+                if (item.quantity == 1) {
+                    return res.status(400).send({ data: "Product is cannot be less then one" })
+                }
+                // console.log(item);
+                item.quantity = item.quantity - 1;
+                // console.log(item);
+                isCartIdPresent.totalItems = isCartIdPresent.totalItems - 1;
+                isCartIdPresent.totalPrice = isCartIdPresent.totalPrice - price;
+                isCartIdPresent.items[findIndex] = item;
+                isCartIdPresent.save()
+                // let updatedCart = await cartModel.findByIdAndUpdate(cartId,isCartIdPresent,{new:true})
+                return res.status(200).send({ status: true, msg: "true", data: isCartIdPresent })
+
+            } else {
+                return res.status(400).send({ status: false, msg: "false", data: "Product is not present in cart or its already deleted" })
+            }
+        } else if (removeProduct == 0) {
+            const itemIndex = isCartIdPresent.items.findIndex((item) => (item.productId == productId));
+            if (itemIndex > -1) {
+                let item = isCartIdPresent.items[itemIndex];
+                isCartIdPresent.totalItems = isCartIdPresent.totalItems - item.quantity;
+                isCartIdPresent.totalPrice = isCartIdPresent.totalPrice - item.quantity * isProductIdPresent.price;
+                isCartIdPresent.items.splice(itemIndex, 1);
+                let cart = await isCartIdPresent.save();
+                return res.status(200).send({ status: true, msg: "true", data: cart })
+            } else {
+                return res.status(400).send({ status: false, msg: "false", data: "Product is not present in cart or its already deleted" })
+            }
+
+        }
+    } else {
+        return res.status(400).send({ status: false, msg: "false", data: "Cart is empty for the user" })
+    }
+}
 
 
 
@@ -191,6 +229,9 @@ const deleteProduct = async function (req, res) {
 
 
 
-module.exports.createCart= createCart
-module.exports.getCart = getCart
-module.exports.deleteProduct = deleteProduct
+module.exports = {
+    createCart,
+    getCart,
+    updateCart,
+    deleteProduct
+}
