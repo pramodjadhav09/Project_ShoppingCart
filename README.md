@@ -1,14 +1,3 @@
-corrections found while testing- 
-1) create product- remove installments validation and also removie it from destructuring.
-                   put validation for type of installments number.
-2) get product by query- not working the filters available sizes.
-3) create cart- getting cart id in request body as asked in problem statement
-
-
-
-
-
-
 # Project_ShoppingCart
 
 

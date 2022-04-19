@@ -18,7 +18,7 @@ const createOrder = async function (req, res) {
     let userId = req.params.userId;
     let items = req.body.items;
 
-    try {
+    //try {
         if (!validator.isValidObjectId(userId)) {
             return res.status(400).send({ status: false, msg: "userId is not in correct format" })
         }
@@ -89,12 +89,13 @@ const createOrder = async function (req, res) {
         })
 
         return res.status(201).send({ status: true, msg: "Order Placed Successfully", data: newUserOrder });
-    } catch (error) {
-        return res.status(500).send({ msg: error.message })
-    }
+    } 
+    // catch (error) {
+    //     return res.status(500).send({ msg: error.message })
+    // }
 
 
-}
+//}
 
 
 
@@ -114,7 +115,7 @@ const updateOrder = async function (req, res) {
 
 
     if (!isavailstatus(statusQuery)) {
-        return res.status(400).send({ status: false, msg: "status shuld be pending canceled completed" })
+        return res.status(400).send({ status: false, msg: "status shuld be pending cancelled or completed" })
 
     }
 
@@ -176,5 +177,11 @@ const updateOrder = async function (req, res) {
 }
 
 
-module.exports.updateOrder = updateOrder
-module.exports.createOrder = createOrder;
+
+
+
+
+module.exports = {
+    updateOrder,
+    createOrder
+}

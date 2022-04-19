@@ -31,8 +31,8 @@ router.put('/users/:userId/cart', auth.authentication, auth.authorization, cartC
 router.delete('/users/:userId/cart', auth.authentication, auth.authorization, cartController.deleteProduct)
 
 //order-
-router.post('users/:userId/orders', auth.authentication, auth.authorization, orderController.createOrder)
-router.put('users/:userId/orders', auth.authentication, auth.authorization, orderController.updateOrder)
+router.post('/users/:userId/orders', auth.authentication, auth.authorization, orderController.createOrder)
+router.put('/users/:userId/orders', auth.authentication, auth.authorization, orderController.updateOrder)
 
 
 

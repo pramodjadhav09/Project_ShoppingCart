@@ -123,7 +123,7 @@ const getProducts = async function (req, res) {
             if (!validator.isValid(availableSizes) && availableSizes.length === 0) {
                 return res.status(400).send({ status: false, msg: "Please enter size" })
             } else {
-                obj.availableSizes = { $in: availableSizes };
+                obj.availableSizes = { $in: availableSizes.split(",") };
             }
         }
 
