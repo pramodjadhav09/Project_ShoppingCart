@@ -89,6 +89,12 @@ const CreateProduct = async function (req, res) {
             requestBody.availableSizes = array
         }
 
+
+        if (!validator.isValidfiles(files)) {
+            return res.status(400).send({ status: false, message: "file upload should be valid should not be empty" })
+        }
+
+
         //uploading product image-
         requestBody.productImage = await awsS3.uploadFile(files[0])
 
@@ -101,6 +107,7 @@ const CreateProduct = async function (req, res) {
         return res.status(500).send({ status: false, msg: error.message })
     }
 }
+
 
 
 
@@ -199,6 +206,12 @@ const getProducts = async function (req, res) {
 const getProductById = async function (req, res) {
     try {
         let productId = req.params.productId
+
+
+        if (!isValidObjectId(productId)) {
+            return res.status(400).send({ status: false, msg: "input productId in correct format" })
+        }
+
         const getProduct = await productModel.findOne({ _id: productId, isDeleted: false })
         if (!getProduct) {
             return res.status(400).send({ status: false, msg: "product does not exist" })
@@ -224,6 +237,11 @@ const updateProductById = async function (req, res) {
     try {
         const data = req.body
         const productId = req.params.productId
+
+
+        if (!isValidObjectId(productId)) {
+            return res.status(400).send({ status: false, msg: "input productId in correct format" })
+        }
 
         const checkProductId = await productModel.findOne({ _id: productId, isDeleted: false })
 
@@ -282,9 +300,9 @@ const updateProductById = async function (req, res) {
             let array = []
 
             //converting string into array-
-            let SavailableSizes = availableSizes.split(" ")
+            let SavailableSizes = availableSizes.split(",")
 
-            for (let i = 0; i < availableSizes.split(" ").length; i++) {
+            for (let i = 0; i < availableSizes.split(",").length; i++) {
 
                 array.push(SavailableSizes[i].toUpperCase())
 
@@ -301,7 +319,6 @@ const updateProductById = async function (req, res) {
         if (validator.isValid(installments)) {
             updateProductInfo.installments = installments
         }
-
 
 
         const updatedProduct = await productModel.findOneAndUpdate({ _id: productId }, updateProductInfo, { new: true })

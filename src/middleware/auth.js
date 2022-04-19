@@ -36,6 +36,7 @@ let isValidObjectId = function (objectId) {
 }
 
 
+//authentication---------------------
 
 const authentication = async function (req, res, next) {
     try {
@@ -63,6 +64,8 @@ const authentication = async function (req, res, next) {
 
 
 
+//authorization-----------------------
+
 const authorization = async function (req, res, next) {
     try {
         const bearerHeader = req.headers['x-api-key'];
@@ -89,6 +92,9 @@ const authorization = async function (req, res, next) {
         res.status(500).send({ msg: err.message })
     }
 }
+
+
+
 
 module.exports.authentication = authentication
 module.exports.authorization = authorization

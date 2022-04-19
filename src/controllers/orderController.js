@@ -5,25 +5,26 @@ const orderModel = require('../models/orderModel');
 
 
 
-const isavailstatus = function (statusQuery) {
+
+
+const isvalidstatus = function (statusQuery) {
     return ["pending", "completed", "cancelled"].indexOf(statusQuery) !== -1
 }
 
 
 
-//CreateOrder--------------------------------
-
+//CreateOrder----------------------------
 
 const createOrder = async function (req, res) {
     let userId = req.params.userId;
     let items = req.body.items;
 
-    //try {
+    try {
         if (!validator.isValidObjectId(userId)) {
             return res.status(400).send({ status: false, msg: "userId is not in correct format" })
         }
 
-        let userIsPresentInOrder = await UserModel.findOne({ userId: userId });
+        let userIsPresentInOrder = await UserModel.findOne({ _id: userId });
 
         if (!userIsPresentInOrder) {
             return res.status(400).send({ status: false, msg: "false", data: "User doesn't exist" })
@@ -78,6 +79,7 @@ const createOrder = async function (req, res) {
         }
 
 
+
         const newUserOrder = await orderModel.create({
             userId: userId,
             items: items,
@@ -89,45 +91,45 @@ const createOrder = async function (req, res) {
         })
 
         return res.status(201).send({ status: true, msg: "Order Placed Successfully", data: newUserOrder });
-    } 
-    // catch (error) {
-    //     return res.status(500).send({ msg: error.message })
-    // }
-
-
-//}
+    } catch (error) {
+        return res.status(500).send({ msg: error.message })
+    }
+}
 
 
 
 
 
-//UpdateOrder--------------------------------
+//UpdateOrder--------------------------
 
 const updateOrder = async function (req, res) {
 
-    let userId = req.params.userId;
-
-    let statusQuery = req.query.status;
-
-    if (!statusQuery) {
-        return res.status(400).send({ status: false, msg: "status not provided" })
-    }
-
-
-    if (!isavailstatus(statusQuery)) {
-        return res.status(400).send({ status: false, msg: "status shuld be pending cancelled or completed" })
-
-    }
-
-    if (!validator.isValidObjectId(userId)) {
-        return res.status(400).send({ status: false, msg: "userId is not in correct format" })
-    }
-    let isUserExist = await UserModel.findOne({ userId: userId })
-    if (!isUserExist) {
-        return res.status(400).send({ status: false, msg: "User doesn't exist" })
-    }
-
     try {
+        let userId = req.params.userId;
+
+        let statusQuery = req.query.status;
+
+        if (!statusQuery) {
+            return res.status(400).send({ status: false, msg: "status not provided" })
+        }
+
+
+        if (!isvalidstatus(statusQuery)) {
+            return res.status(400).send({ status: false, msg: "status shuld be pending canceled completed" })
+
+        }
+
+        if (!validator.isValidObjectId(userId)) {
+            return res.status(400).send({ status: false, msg: "userId is not in correct format" })
+        }
+        let isUserExist = await UserModel.findOne({ userId: userId })
+        
+        if (!isUserExist) {
+            return res.status(400).send({ status: false, msg: "User doesn't exist" })
+        }
+
+
+
         let orderId = req.body.orderId
         let requestBody = req.body;
 
@@ -156,6 +158,7 @@ const updateOrder = async function (req, res) {
         }
 
         let cancellableCheck = takeOutOrder.cancellable;
+        
         if (cancellableCheck == true) {
             if (statusQuery == "cancelled") {
                 let cancelledOrder = await orderModel.findOneAndUpdate({ _id: orderId, isDeleted: false }, { $set: { status: statusQuery, isDeleted: true, deletedAt: Date.now() } }, { new: true })
@@ -169,19 +172,15 @@ const updateOrder = async function (req, res) {
         } else {
             return res.status(400).send({ status: false, msg: "Cancellation is not allowed" })
         }
+
     } catch (error) {
-        return res.status(500).send({ status: false, msg: error.message })
+        return res.status(500).send({ msg: error.message })
     }
 
-
 }
 
 
 
 
-
-
-module.exports = {
-    updateOrder,
-    createOrder
-}
+module.exports.updateOrder = updateOrder
+module.exports.createOrder = createOrder;
